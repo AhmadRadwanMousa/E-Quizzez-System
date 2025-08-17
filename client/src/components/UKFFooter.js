@@ -19,17 +19,17 @@ const UKFFooter = ({ className = "" }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* UKF Info */}
           <div className="col-span-1 lg:col-span-2">
-            <UKFLogo size="large" className="mb-6" />
-            <p className="text-ukf-200 text-sm leading-relaxed mb-6 max-w-lg">
+            <UKFLogo size="large" className="mb-6" logoColor="white" />
+            <p className="text-white text-sm leading-relaxed mb-6 max-w-lg">
               The University of KhorFakkan (UKF) is dedicated to fostering innovation, research, and academic excellence. 
               Our comprehensive programs, expert faculty, and state-of-the-art facilities provide an ideal environment for learning and personal growth.
             </p>
             <div className="flex flex-wrap gap-4 mb-6">
-              <div className="flex items-center text-ukf-300 text-sm bg-ukf-800 px-3 py-2 rounded-lg">
+              <div className="flex items-center text-white text-sm bg-ukf-800 px-3 py-2 rounded-lg">
                 <GraduationCap className="h-4 w-4 mr-2 text-ukf-gold-400" />
                 <span>12 Bachelor Programs</span>
               </div>
-              <div className="flex items-center text-ukf-300 text-sm bg-ukf-800 px-3 py-2 rounded-lg">
+              <div className="flex items-center text-white text-sm bg-ukf-800 px-3 py-2 rounded-lg">
                 <Shield className="h-4 w-4 mr-2 text-ukf-gold-400" />
                 <span>5 Colleges</span>
               </div>
@@ -41,14 +41,14 @@ const UKFFooter = ({ className = "" }) => {
                 href="https://ukf.ac.ae" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="text-ukf-300 hover:text-ukf-gold-400 transition-colors duration-200 p-2 hover:bg-ukf-800 rounded-lg"
+                className="text-white hover:text-ukf-gold-400 transition-colors duration-200 p-2 hover:bg-ukf-800 rounded-lg"
                 aria-label="Visit UKF website"
               >
                 <Globe className="h-5 w-5" />
               </a>
               <a 
                 href="mailto:info@ukf.ac.ae"
-                className="text-ukf-300 hover:text-ukf-gold-400 transition-colors duration-200 p-2 hover:bg-ukf-800 rounded-lg"
+                className="text-white hover:text-ukf-gold-400 transition-colors duration-200 p-2 hover:bg-ukf-800 rounded-lg"
                 aria-label="Send email to UKF"
               >
                 <Mail className="h-5 w-5" />
@@ -73,7 +73,7 @@ const UKFFooter = ({ className = "" }) => {
                 <li key={link.name}>
                   <a 
                     href={link.href} 
-                    className="text-ukf-200 hover:text-white transition-colors duration-200 flex items-center group"
+                    className="text-white hover:text-ukf-gold-400 transition-colors duration-200 flex items-center group"
                   >
                     <span className="group-hover:text-ukf-gold-400 transition-colors duration-200">
                       {link.name}
@@ -101,12 +101,12 @@ const UKFFooter = ({ className = "" }) => {
                       href={item.href}
                       target={item.href.startsWith('http') ? '_blank' : undefined}
                       rel={item.href.startsWith('http') ? 'noopener noreferrer' : undefined}
-                      className="text-ukf-200 hover:text-white transition-colors duration-200 group-hover:text-ukf-gold-400"
+                      className="text-white hover:text-ukf-gold-400 transition-colors duration-200 group-hover:text-ukf-gold-400"
                     >
                       {item.text}
                     </a>
                   ) : (
-                    <span className="text-ukf-200">{item.text}</span>
+                    <span className="text-white">{item.text}</span>
                   )}
                 </div>
               ))}
@@ -117,14 +117,14 @@ const UKFFooter = ({ className = "" }) => {
         {/* Bottom Section */}
         <div className="border-t border-ukf-800 mt-8 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-            <p className="text-ukf-300 text-sm text-center md:text-left">
+            <p className="text-white text-sm text-center md:text-left">
               © 2025 University of KhorFakkan. All rights reserved.
             </p>
             
             {/* Back to Top Button */}
             <button
               onClick={scrollToTop}
-              className="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-ukf-300 hover:text-white hover:bg-ukf-800 rounded-lg transition-all duration-200 group"
+              className="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-white hover:text-ukf-gold-400 hover:bg-ukf-800 rounded-lg transition-all duration-200 group"
               aria-label="Back to top"
             >
               <ArrowUp className="h-4 w-4 group-hover:-translate-y-1 transition-transform duration-200" />

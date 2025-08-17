@@ -107,15 +107,46 @@ const Results = () => {
     );
   }
 
+  // Calculate average score with fallback logic
   const averageScore = results.length > 0 
-    ? Math.round(results.reduce((acc, result) => acc + (result.score / result.total_questions) * 100, 0) / results.length)
+    ? Math.round(results.reduce((acc, result) => {
+        // Use percentage from backend if available, otherwise calculate it
+        let percentage = result.percentage;
+        if (percentage === undefined || percentage === null) {
+          // Fallback calculation if percentage is missing
+          if (result.total_marks && result.total_marks > 0) {
+            percentage = Math.round((result.score / result.total_marks) * 100);
+          } else if (result.total_questions && result.total_questions > 0) {
+            percentage = Math.round((result.score / result.total_questions) * 100);
+          } else {
+            percentage = 0;
+          }
+        }
+        // Ensure percentage is within reasonable bounds (0-100)
+        percentage = Math.max(0, Math.min(100, percentage));
+        return acc + percentage;
+      }, 0) / results.length)
     : 0;
   
   const averageTime = results.length > 0 
-    ? Math.round(results.reduce((acc, result) => acc + result.time_taken, 0) / results.length / 60)
+    ? Math.round(results.reduce((acc, result) => acc + (result.time_taken || 0), 0) / results.length / 60)
     : 0;
   
-  const highScores = results.filter(result => (result.score / result.total_questions) * 100 >= 80).length;
+  // Calculate high scores with the same fallback logic
+  const highScores = results.filter(result => {
+    let percentage = result.percentage;
+    if (percentage === undefined || percentage === null) {
+      if (result.total_marks && result.total_marks > 0) {
+        percentage = Math.round((result.score / result.total_marks) * 100);
+      } else if (result.total_questions && result.total_questions > 0) {
+        percentage = Math.round((result.score / result.total_questions) * 100);
+      } else {
+        percentage = 0;
+      }
+    }
+    percentage = Math.max(0, Math.min(100, percentage));
+    return percentage >= 80;
+  }).length;
 
   return (
     <div className="min-h-screen bg-ukf-50">

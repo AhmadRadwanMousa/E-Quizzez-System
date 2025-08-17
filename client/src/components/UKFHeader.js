@@ -16,7 +16,7 @@ const UKFHeader = ({
   backLabel = "Back to Dashboard"
 }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { user, logout } = useAuth();
+  const { user, adminUser, logout } = useAuth();
   const { t } = useLocalization();
   const navigate = useNavigate();
 
@@ -39,23 +39,35 @@ const UKFHeader = ({
 
   // Determine user role and display name
   const getUserDisplayInfo = () => {
-    if (!user) return { role: 'User', name: 'Guest' };
-    
-    // Check if user has role property
-    if (user.role) {
+    // Check for admin user first
+    if (adminUser) {
       return { 
-        role: user.role === 'admin' ? 'Admin' : 'Student',
-        name: user.name || user.username || 'User'
+        role: 'Admin', 
+        name: adminUser.name || adminUser.username || adminUser.email || 'Admin'
       };
     }
     
-    // Check if user has admin properties to determine role
-    if (user.is_admin || user.admin) {
-      return { role: 'Admin', name: user.name || user.username || 'Admin' };
+    // Check for regular user
+    if (user) {
+      // Check if user has role property
+      if (user.role) {
+        return { 
+          role: user.role === 'admin' ? 'Admin' : 'Student',
+          name: user.name || user.username || 'User'
+        };
+      }
+      
+      // Check if user has admin properties to determine role
+      if (user.is_admin || user.admin) {
+        return { role: 'Admin', name: user.name || user.username || 'Admin' };
+      }
+      
+      // Default to student
+      return { role: 'Student', name: user.name || user.username || 'Student' };
     }
     
-    // Default to student
-    return { role: 'Student', name: user.name || user.username || 'Student' };
+    // No user logged in
+    return { role: 'User', name: 'Guest' };
   };
 
   const { role, name } = getUserDisplayInfo();
@@ -82,7 +94,7 @@ const UKFHeader = ({
               <UKFLogo 
                 className="text-white" 
                 showText={false} 
-                size="small"
+                size="medium"
                 logoColor="white"
               />
             </div>
@@ -128,14 +140,16 @@ const UKFHeader = ({
               </div>
             )}
 
-            {/* Logout Button */}
-            <button
-              onClick={handleLogout}
-              className="flex items-center space-x-2 px-4 py-2 bg-ukf-600 hover:bg-ukf-500 text-white rounded-lg transition-colors font-medium"
-            >
-              <LogOut className="h-4 w-4" />
-              <span className="hidden sm:inline">Logout</span>
-            </button>
+            {/* Logout Button - Only show when user is logged in */}
+            {(user || adminUser) && (
+              <button
+                onClick={handleLogout}
+                className="flex items-center space-x-2 px-4 py-2 bg-ukf-600 hover:bg-ukf-500 text-white rounded-lg transition-colors font-medium"
+              >
+                <LogOut className="h-4 w-4" />
+                <span className="hidden sm:inline">Logout</span>
+              </button>
+            )}
 
             {/* Mobile Menu Button */}
             <button
@@ -199,6 +213,19 @@ const UKFHeader = ({
               {showLanguageSwitcher && (
                 <div className="flex justify-center py-3 border-t border-ukf-600">
                   <LanguageSwitcher />
+                </div>
+              )}
+
+              {/* Mobile Logout Button - Only show when user is logged in */}
+              {(user || adminUser) && (
+                <div className="flex justify-center py-3 border-t border-ukf-600">
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center space-x-2 px-4 py-2 bg-ukf-600 hover:bg-ukf-500 text-white rounded-lg transition-colors font-medium"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    <span>Logout</span>
+                  </button>
                 </div>
               )}
             </div>
