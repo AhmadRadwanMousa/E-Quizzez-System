@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Filter, Download, Eye, TrendingUp, TrendingDown, Trophy, Clock } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
+import { useLocalization } from '../contexts/LocalizationContext';
+import UKFHeader from './UKFHeader';
+import UKFFooter from './UKFFooter';
 
 const AdminResults = () => {
   const [results, setResults] = useState([]);
@@ -19,6 +22,7 @@ const AdminResults = () => {
   const [showFilters, setShowFilters] = useState(false);
   const navigate = useNavigate();
   const { getToken } = useAuth();
+  const { t } = useLocalization();
 
   useEffect(() => {
     fetchData();
@@ -27,7 +31,7 @@ const AdminResults = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('adminToken');
+      const token = getToken();
       
       const [resultsRes, studentsRes, examsRes] = await Promise.all([
         axios.get('/api/admin/results', { headers: { Authorization: `Bearer ${token}` } }),
@@ -103,7 +107,7 @@ const AdminResults = () => {
     const filtered = getFilteredResults();
     if (filtered.length === 0) return { total: 0, average: 0, highest: 0, lowest: 100 };
     
-    const scores = filtered.map(r => (r.score / r.total_questions) * 100);
+    const scores = filtered.map(r => r.percentage || 0);
     return {
       total: filtered.length,
       average: Math.round(scores.reduce((a, b) => a + b, 0) / scores.length),
@@ -115,13 +119,13 @@ const AdminResults = () => {
   const exportToCSV = () => {
     const filtered = getFilteredResults();
     const csvContent = [
-      ['Student', 'Exam', 'Score', 'Total Questions', 'Percentage', 'Time Taken', 'Submitted'],
+      ['Student', 'Exam', 'Score', 'Total Marks', 'Percentage', 'Time Taken', 'Submitted'],
       ...filtered.map(r => [
         getStudentName(r.student_id),
         getExamTitle(r.exam_id),
         r.score,
-        r.total_questions,
-        `${Math.round((r.score / r.total_questions) * 100)}%`,
+        r.total_marks,
+        `${r.percentage || 0}%`,
         formatTime(r.time_taken),
         formatDate(r.submitted_at)
       ])
@@ -138,8 +142,11 @@ const AdminResults = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-indigo-600"></div>
+      <div className="min-h-screen bg-ukf-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-ukf-700 mx-auto mb-4"></div>
+          <p className="text-ukf-700 font-medium">Loading results...</p>
+        </div>
       </div>
     );
   }
@@ -148,102 +155,110 @@ const AdminResults = () => {
   const filteredResults = getFilteredResults();
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
+    <div className="min-h-screen bg-ukf-50">
+      {/* UKF Header */}
+      <UKFHeader
+        title="Exam Results Management"
+        subtitle="Monitor Student Performance and Analytics"
+        showUserMenu={true}
+        showLanguageSwitcher={true}
+        showBackButton={true}
+        backTo="/admin/dashboard"
+        backLabel="Back to Dashboard"
+      />
+
+      {/* Main Content */}
+      <div className="container-ukf py-8">
+        {/* Navigation Breadcrumbs */}
+        <div className="mb-6">
+          <nav className="flex items-center space-x-2 text-sm text-ukf-600">
+            <button 
+              onClick={() => navigate('/admin/dashboard')}
+              className="text-ukf-400 hover:text-ukf-600 transition-colors"
+            >
+              Admin Panel
+            </button>
+            <span>/</span>
+            <span className="text-ukf-700 font-medium">Results Management</span>
+          </nav>
+        </div>
+
+        {/* Page Title Section */}
+        <div className="mb-8 text-center">
+          <h2 className="text-3xl font-bold text-ukf-900 mb-2">Exam Results Management</h2>
+          <p className="text-ukf-600 text-lg">Monitor student performance and analyze exam results</p>
+        </div>
+
+        {/* Error Display */}
+        {error && (
+          <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-xl">
             <div className="flex items-center">
-              <button onClick={() => navigate('/admin/dashboard')} className="mr-4 p-2 text-gray-400 hover:text-gray-600">
-                <ArrowLeft className="h-5 w-5" />
-              </button>
-              <h1 className="text-2xl font-bold text-gray-900">Exam Results</h1>
+              <span className="text-lg mr-2">❌</span>
+              {error}
             </div>
-            <div className="flex space-x-3">
+          </div>
+        )}
+
+        {/* Controls Section */}
+        <div className="ukf-card p-6 mb-8">
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center space-y-4 lg:space-y-0">
+            <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
               <button
                 onClick={() => setShowFilters(!showFilters)}
-                className="btn-secondary flex items-center"
+                className="ukf-button-secondary flex items-center space-x-2"
               >
-                <Filter className="h-4 w-4 mr-2" />
-                Filters
+                <Filter className="h-4 w-4" />
+                <span>{showFilters ? 'Hide' : 'Show'} Filters</span>
               </button>
-              <button onClick={exportToCSV} className="btn-primary flex items-center">
-                <Download className="h-4 w-4 mr-2" />
-                Export CSV
+            </div>
+
+            <div className="flex space-x-3">
+              <button onClick={exportToCSV} className="ukf-button-primary flex items-center space-x-2">
+                <Download className="h-4 w-4" />
+                <span>Export CSV</span>
               </button>
             </div>
           </div>
         </div>
-      </header>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {error && (
-          <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
-            {error}
-          </div>
-        )}
 
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <Trophy className="h-6 w-6 text-blue-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Results</p>
-                <p className="text-2xl font-semibold text-gray-900">{stats.total}</p>
-              </div>
-            </div>
+          <div className="ukf-stat-card">
+            <div className="ukf-stat-number text-ukf-700">{stats.total}</div>
+            <div className="ukf-stat-label">Total Results</div>
+            <Trophy className="h-8 w-8 text-ukf-400 mx-auto mt-3" />
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="p-3 bg-green-100 rounded-lg">
-                <TrendingUp className="h-6 w-6 text-green-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Average Score</p>
-                <p className="text-2xl font-semibold text-gray-900">{stats.average}%</p>
-              </div>
-            </div>
+          <div className="ukf-stat-card">
+            <div className="ukf-stat-number text-ukf-700">{stats.average}%</div>
+            <div className="ukf-stat-label">Average Score</div>
+            <TrendingUp className="h-8 w-8 text-ukf-400 mx-auto mt-3" />
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="p-3 bg-yellow-100 rounded-lg">
-                <Trophy className="h-6 w-6 text-yellow-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Highest Score</p>
-                <p className="text-2xl font-semibold text-gray-900">{stats.highest}%</p>
-              </div>
-            </div>
+          <div className="ukf-stat-card">
+            <div className="ukf-stat-number text-ukf-700">{stats.highest}%</div>
+            <div className="ukf-stat-label">Highest Score</div>
+            <Trophy className="h-8 w-8 text-ukf-400 mx-auto mt-3" />
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="p-3 bg-red-100 rounded-lg">
-                <TrendingDown className="h-6 w-6 text-red-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Lowest Score</p>
-                <p className="text-2xl font-semibold text-gray-900">{stats.lowest}%</p>
-              </div>
-            </div>
+          <div className="ukf-stat-card">
+            <div className="ukf-stat-number text-ukf-700">{stats.lowest}%</div>
+            <div className="ukf-stat-label">Lowest Score</div>
+            <TrendingDown className="h-8 w-8 text-ukf-400 mx-auto mt-3" />
           </div>
         </div>
 
         {/* Filters */}
         {showFilters && (
-          <div className="bg-white rounded-lg shadow p-6 mb-8">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Filter Results</h3>
+          <div className="ukf-card p-6 mb-8">
+            <h3 className="text-lg font-semibold text-ukf-900 mb-4">Filter Results</h3>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Student</label>
+                <label className="block text-sm font-medium text-ukf-700 mb-2">Student</label>
                 <select
                   value={filters.student_id}
                   onChange={(e) => setFilters(prev => ({ ...prev, student_id: e.target.value }))}
-                  className="input-field w-full"
+                  className="ukf-input w-full"
                 >
                   <option value="">All Students</option>
                   {students.map(student => (
@@ -255,11 +270,11 @@ const AdminResults = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Exam</label>
+                <label className="block text-sm font-medium text-ukf-700 mb-2">Exam</label>
                 <select
                   value={filters.exam_id}
                   onChange={(e) => setFilters(prev => ({ ...prev, exam_id: e.target.value }))}
-                  className="input-field w-full"
+                  className="ukf-input w-full"
                 >
                   <option value="">All Exams</option>
                   {exams.map(exam => (
@@ -271,27 +286,27 @@ const AdminResults = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Min Score (%)</label>
+                <label className="block text-sm font-medium text-ukf-700 mb-2">Min Score (%)</label>
                 <input
                   type="number"
                   min="0"
                   max="100"
                   value={filters.min_score}
                   onChange={(e) => setFilters(prev => ({ ...prev, min_score: e.target.value }))}
-                  className="input-field w-full"
+                  className="ukf-input w-full"
                   placeholder="0"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Max Score (%)</label>
+                <label className="block text-sm font-medium text-ukf-700 mb-2">Max Score (%)</label>
                 <input
                   type="number"
                   min="0"
                   max="100"
                   value={filters.max_score}
                   onChange={(e) => setFilters(prev => ({ ...prev, max_score: e.target.value }))}
-                  className="input-field w-full"
+                  className="ukf-input w-full"
                   placeholder="100"
                 />
               </div>
@@ -300,70 +315,73 @@ const AdminResults = () => {
         )}
 
         {/* Results Table */}
-        <div className="bg-white rounded-lg shadow">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900">
+        <div className="ukf-card overflow-hidden">
+          <div className="px-6 py-4 border-b border-ukf-200">
+            <h3 className="text-lg font-semibold text-ukf-900">
               Results ({filteredResults.length})
             </h3>
           </div>
           
           {filteredResults.length === 0 ? (
-            <div className="p-6 text-center text-gray-500">
-              {results.length === 0 ? 'No exam results yet.' : 'No results match the current filters.'}
+            <div className="p-12 text-center text-ukf-500">
+              <Trophy className="h-16 w-16 text-ukf-300 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-ukf-600 mb-2">
+                {results.length === 0 ? 'No exam results yet.' : 'No results match the current filters.'}
+              </h3>
+              <p className="text-ukf-500">
+                {results.length === 0 ? 'Students need to complete exams to see results here.' : 'Try adjusting your filter criteria.'}
+              </p>
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="ukf-table">
+                <thead>
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Student
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Exam
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Score
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Time Taken
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Submitted
-                    </th>
+                    <th>Student</th>
+                    <th>Exam</th>
+                    <th>Score</th>
+                    <th>Time Taken</th>
+                    <th>Submitted</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody>
                   {filteredResults.map((result) => {
-                    const percentage = Math.round((result.score / result.total_questions) * 100);
+                    const percentage = result.percentage || 0;
                     return (
-                      <tr key={result.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">
-                            {getStudentName(result.student_id)}
+                      <tr key={result.id} className="hover:bg-ukf-50">
+                        <td>
+                          <div className="flex items-center space-x-3">
+                            <div className="h-10 w-10 bg-ukf-100 rounded-full flex items-center justify-center">
+                              <Trophy className="h-5 w-5 text-ukf-600" />
+                            </div>
+                            <div>
+                              <div className="font-medium text-ukf-900">
+                                {getStudentName(result.student_id)}
+                              </div>
+                            </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">
+                        <td>
+                          <div className="text-ukf-700">
                             {getExamTitle(result.exam_id)}
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td>
                           <div className="flex items-center space-x-2">
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getScoreColor(percentage)}`}>
+                            <span className={`ukf-badge ${getScoreColor(percentage)}`}>
                               {getScoreIcon(percentage)}
-                              <span className="ml-1">{result.score}/{result.total_questions}</span>
+                              <span className="ml-1">{result.score}/{result.total_marks} marks</span>
                             </span>
-                            <span className="text-sm text-gray-500">({percentage}%)</span>
+                            <span className="text-sm text-ukf-500">({percentage}%)</span>
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center text-sm text-gray-900">
-                            <Clock className="h-4 w-4 mr-1 text-gray-400" />
+                        <td>
+                          <div className="flex items-center text-ukf-700">
+                            <Clock className="h-4 w-4 mr-2 text-ukf-400" />
                             {formatTime(result.time_taken)}
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <td className="text-ukf-600 text-sm">
                           {formatDate(result.submitted_at)}
                         </td>
                       </tr>
@@ -375,6 +393,9 @@ const AdminResults = () => {
           )}
         </div>
       </div>
+
+      {/* UKF Footer */}
+      <UKFFooter />
     </div>
   );
 };

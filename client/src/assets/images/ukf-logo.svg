@@ -1,0 +1,18 @@
+<svg width="120" height="120" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+  <!-- This is a placeholder - replace this file with the actual UKF logo image -->
+  <!-- You can download the logo from: https://library.ukf.ac.ae//sites/default/files/ukf%20logo.png -->
+  <!-- and save it as ukf-logo.png in this folder -->
+  
+  <!-- Placeholder circle -->
+  <circle cx="60" cy="60" r="58" fill="rgb(27, 88, 143)" stroke="white" strokeWidth="2"/>
+  
+  <!-- Placeholder text -->
+  <text x="60" y="65" text-anchor="middle" fill="white" font-family="Arial" font-size="12" font-weight="bold">
+    UKF LOGO
+  </text>
+  <text x="60" y="80" text-anchor="middle" fill="white" font-family="Arial" font-size="8">
+    Replace with actual logo
+  </text>
+</svg>
+
+

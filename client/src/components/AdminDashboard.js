@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Users, 
   BookOpen, 
-  Award, 
   BarChart3, 
   LogOut, 
   Settings, 
@@ -14,16 +13,14 @@ import {
   Shield, 
   Zap, 
   Target, 
-  Clock,
-  Eye,
-  Edit,
-  Trash2,
-  UserPlus,
-  Database,
-  PieChart
+  UserPlus, 
+  Database
 } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
+import { useLocalization } from '../contexts/LocalizationContext';
+import UKFHeader from './UKFHeader';
+import UKFFooter from './UKFFooter';
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState({
@@ -35,6 +32,7 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { logout, getToken } = useAuth();
+  const { t } = useLocalization();
 
   useEffect(() => {
     fetchStats();
@@ -77,254 +75,184 @@ const AdminDashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center">
+      <div className="min-h-screen bg-ukf-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-          <p className="text-indigo-600 font-medium">Loading dashboard...</p>
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-ukf-700 mx-auto mb-4"></div>
+          <p className="text-ukf-700 font-medium">{t('common.loading')}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
-      {/* Header */}
-      <header className="relative overflow-hidden bg-gradient-to-r from-indigo-600 to-purple-700 text-white shadow-xl">
-        <div className="absolute inset-0 bg-black opacity-10"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div className="flex items-center">
-              <div className="h-12 w-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center backdrop-blur-sm mr-4">
-                <Settings className="h-7 w-7" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-                <p className="text-indigo-100 text-sm">Manage your quiz platform</p>
-              </div>
-            </div>
-            <button
-              onClick={handleLogout}
-              className="flex items-center px-6 py-3 text-sm font-medium text-white hover:text-indigo-100 hover:bg-white hover:bg-opacity-20 rounded-xl transition-all duration-200"
-            >
-              <LogOut className="h-5 w-5 mr-2" />
-              Logout
-            </button>
-          </div>
+    <div className="min-h-screen bg-ukf-50">
+      {/* UKF Header */}
+      <UKFHeader
+        title={t('adminDashboard.title')}
+        subtitle={t('adminDashboard.subtitle')}
+        showUserMenu={true}
+        showLanguageSwitcher={true}
+        showBackButton={false}
+      />
+
+      {/* Main Content */}
+      <div className="container-ukf py-8">
+        {/* Navigation Breadcrumbs */}
+        <div className="mb-6">
+          <nav className="flex items-center space-x-2 text-sm text-ukf-600">
+            <span className="text-ukf-400">Admin Panel</span>
+            <span>/</span>
+            <span className="text-ukf-700 font-medium">Dashboard</span>
+          </nav>
         </div>
         
-        {/* Decorative elements */}
-        <div className="absolute top-0 left-0 w-32 h-32 bg-white opacity-5 rounded-full -translate-x-16 -translate-y-16"></div>
-        <div className="absolute bottom-0 right-0 w-40 h-40 bg-white opacity-5 rounded-full translate-x-20 translate-y-20"></div>
-      </header>
+        {/* Page Title Section */}
+        <div className="mb-8 text-center">
+          <h2 className="text-3xl font-bold text-ukf-900 mb-2">{t('adminDashboard.administrativeControlCenter')}</h2>
+          <p className="text-ukf-600 text-lg">{t('adminDashboard.platformDescription')}</p>
+        </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Exams</p>
-                <p className="text-3xl font-bold text-indigo-600">{stats.totalExams}</p>
-              </div>
-              <div className="h-12 w-12 bg-indigo-100 rounded-xl flex items-center justify-center">
-                <BookOpen className="h-6 w-6 text-indigo-600" />
-              </div>
-            </div>
-            <div className="mt-4 flex items-center text-sm text-gray-500">
-              <Activity className="h-4 w-4 mr-1 text-indigo-500" />
-              <span>Created</span>
-            </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+          <div className="ukf-stat-card">
+            <div className="ukf-stat-number text-ukf-700">{stats.totalStudents}</div>
+            <div className="ukf-stat-label">{t('adminDashboard.totalStudents')}</div>
+            <Users className="h-8 w-8 text-ukf-400 mx-auto mt-3" />
           </div>
-
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Questions</p>
-                <p className="text-3xl font-bold text-green-600">{stats.totalQuestions}</p>
-              </div>
-              <div className="h-12 w-12 bg-green-100 rounded-xl flex items-center justify-center">
-                <FileText className="h-6 w-6 text-green-600" />
-              </div>
-            </div>
-            <div className="mt-4 flex items-center text-sm text-gray-500">
-              <Database className="h-4 w-4 mr-1 text-green-500" />
-              <span>In database</span>
-            </div>
+          
+          <div className="ukf-stat-card">
+            <div className="ukf-stat-number text-ukf-700">{stats.totalQuestions}</div>
+            <div className="ukf-stat-label">{t('adminDashboard.totalQuestions')}</div>
+            <FileText className="h-8 w-8 text-ukf-400 mx-auto mt-3" />
           </div>
-
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Students</p>
-                <p className="text-3xl font-bold text-purple-600">{stats.totalStudents}</p>
-              </div>
-              <div className="h-12 w-12 bg-purple-100 rounded-xl flex items-center justify-center">
-                <Users className="h-6 w-6 text-purple-600" />
-              </div>
-            </div>
-            <div className="mt-4 flex items-center text-sm text-gray-500">
-              <UserPlus className="h-4 w-4 mr-1 text-purple-500" />
-              <span>Registered</span>
-            </div>
+          
+          <div className="ukf-stat-card">
+            <div className="ukf-stat-number text-ukf-700">{stats.totalExams}</div>
+            <div className="ukf-stat-label">{t('adminDashboard.totalExams')}</div>
+            <BookOpen className="h-8 w-8 text-ukf-400 mx-auto mt-3" />
           </div>
-
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Active Exams</p>
-                <p className="text-3xl font-bold text-orange-600">{stats.activeExams}</p>
-              </div>
-              <div className="h-12 w-12 bg-orange-100 rounded-xl flex items-center justify-center">
-                <Target className="h-6 w-6 text-orange-600" />
-              </div>
-            </div>
-            <div className="mt-4 flex items-center text-sm text-gray-500">
-              <TrendingUp className="h-4 w-4 mr-1 text-orange-500" />
-              <span>Live now</span>
-            </div>
+          
+          <div className="ukf-stat-card">
+            <div className="ukf-stat-number text-ukf-700">{stats.activeExams}</div>
+            <div className="ukf-stat-label">{t('adminDashboard.activeExams')}</div>
+            <Activity className="h-8 w-8 text-ukf-400 mx-auto mt-3" />
           </div>
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 group">
-            <div className="flex items-center mb-4">
-              <div className="h-10 w-10 bg-green-100 rounded-xl flex items-center justify-center mr-3 group-hover:bg-green-200 transition-colors">
-                <FileText className="h-5 w-5 text-green-600" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900">Manage Questions</h3>
-            </div>
-            <p className="text-gray-600 mb-6 text-sm leading-relaxed">
-              Create, edit, and delete questions for your exams. Organize questions by subject and difficulty level.
-            </p>
-            <button
-              onClick={() => navigate('/admin/questions')}
-              className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-semibold py-3 px-4 rounded-xl flex items-center justify-center space-x-2 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl"
-            >
-              <Plus className="h-4 w-4" />
-              <span>Manage Questions</span>
-            </button>
-          </div>
-
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 group">
-            <div className="flex items-center mb-4">
-              <div className="h-10 w-10 bg-indigo-100 rounded-xl flex items-center justify-center mr-3 group-hover:bg-indigo-200 transition-colors">
-                <BookOpen className="h-5 w-5 text-indigo-600" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900">Manage Exams</h3>
-            </div>
-            <p className="text-gray-600 mb-6 text-sm leading-relaxed">
-              Create new exams, assign questions, set time limits, and control exam availability with start/end times.
-            </p>
-            <button
-              onClick={() => navigate('/admin/exams')}
-              className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-semibold py-3 px-4 rounded-xl flex items-center justify-center space-x-2 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl"
-            >
-              <Plus className="h-4 w-4" />
-              <span>Manage Exams</span>
-            </button>
-          </div>
-
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 group">
-            <div className="flex items-center mb-4">
-              <div className="h-10 w-10 bg-purple-100 rounded-xl flex items-center justify-center mr-3 group-hover:bg-purple-200 transition-colors">
-                <Users className="h-5 w-5 text-purple-600" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900">Manage Students</h3>
-            </div>
-            <p className="text-gray-600 mb-6 text-sm leading-relaxed">
-              Create, edit, and delete student accounts. Manage student information and access permissions.
-            </p>
+        <div className="mb-12">
+          <h3 className="text-2xl font-bold text-ukf-900 mb-6 text-center">{t('adminDashboard.quickActions')}</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <button
               onClick={() => navigate('/admin/students')}
-              className="w-full bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-semibold py-3 px-4 rounded-xl flex items-center justify-center space-x-2 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl"
+              className="ukf-card p-6 text-center hover:shadow-ukf-xl transition-all duration-300 group"
             >
-              <Plus className="h-4 w-4" />
-              <span>Manage Students</span>
+              <div className="h-16 w-16 bg-ukf-100 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-ukf-200 transition-colors">
+                <Users className="h-8 w-8 text-ukf-700" />
+              </div>
+              <h4 className="text-lg font-semibold text-ukf-900 mb-2">{t('adminDashboard.manageStudents')}</h4>
+              <p className="text-ukf-600 text-sm">{t('adminDashboard.manageStudentsDesc')}</p>
+            </button>
+
+            <button
+              onClick={() => navigate('/admin/subjects')}
+              className="ukf-card p-6 text-center hover:shadow-ukf-xl transition-all duration-300 group"
+            >
+              <div className="h-16 w-16 bg-ukf-100 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-ukf-200 transition-colors">
+                <BookOpen className="h-8 w-8 text-ukf-700" />
+              </div>
+              <h4 className="text-lg font-semibold text-ukf-900 mb-2">{t('adminDashboard.manageSubjects')}</h4>
+              <p className="text-ukf-600 text-sm">{t('adminDashboard.manageSubjectsDesc')}</p>
+            </button>
+
+            <button
+              onClick={() => navigate('/admin/questions')}
+              className="ukf-card p-6 text-center hover:shadow-ukf-xl transition-all duration-300 group"
+            >
+              <div className="h-16 w-16 bg-ukf-100 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-ukf-200 transition-colors">
+                <FileText className="h-8 w-8 text-ukf-700" />
+              </div>
+              <h4 className="text-lg font-semibold text-ukf-900 mb-2">{t('adminDashboard.manageQuestions')}</h4>
+              <p className="text-ukf-600 text-sm">{t('adminDashboard.manageQuestionsDesc')}</p>
+            </button>
+
+            <button
+              onClick={() => navigate('/admin/exams')}
+              className="ukf-card p-6 text-center hover:shadow-ukf-xl transition-all duration-300 group"
+            >
+              <div className="h-16 w-16 bg-ukf-100 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-ukf-200 transition-colors">
+                <BookOpen className="h-8 w-8 text-ukf-700" />
+              </div>
+              <h4 className="text-lg font-semibold text-ukf-900 mb-2">{t('adminDashboard.manageExams')}</h4>
+              <p className="text-ukf-600 text-sm">{t('adminDashboard.manageExamsDesc')}</p>
+            </button>
+
+            <button
+              onClick={() => navigate('/admin/results')}
+              className="ukf-card p-6 text-center hover:shadow-ukf-xl transition-all duration-300 group"
+            >
+              <div className="h-16 w-16 bg-ukf-100 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-ukf-200 transition-colors">
+                <TrendingUp className="h-8 w-8 text-ukf-700" />
+              </div>
+              <h4 className="text-lg font-semibold text-ukf-900 mb-2">{t('adminDashboard.manageResults')}</h4>
+              <p className="text-ukf-600 text-sm">{t('adminDashboard.manageResultsDesc')}</p>
             </button>
           </div>
         </div>
 
-        {/* Quick Actions Grid */}
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 mb-8">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-              <Zap className="h-5 w-5 mr-2 text-indigo-600" />
-              Quick Actions
-            </h3>
-          </div>
-          <div className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <button
-                onClick={() => navigate('/admin/questions/new')}
-                className="flex items-center p-4 border border-gray-200 rounded-xl hover:border-green-300 hover:bg-green-50 transition-all duration-200 group"
-              >
-                <div className="h-10 w-10 bg-green-100 rounded-xl flex items-center justify-center mr-3 group-hover:bg-green-200 transition-colors">
-                  <Plus className="h-5 w-5 text-green-600" />
+        {/* Recent Activity */}
+        <div className="mb-12">
+          <h3 className="text-2xl font-bold text-ukf-900 mb-6 text-center">{t('adminDashboard.platformOverview')}</h3>
+          <div className="ukf-card p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h4 className="text-lg font-semibold text-ukf-800 mb-4 flex items-center">
+                  <Shield className="h-5 w-5 mr-2 text-ukf-600" />
+                  {t('adminDashboard.systemStatus')}
+                </h4>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-ukf-600">{t('adminDashboard.database')}</span>
+                    <span className="ukf-badge ukf-badge-success">{t('adminDashboard.online')}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-ukf-600">{t('adminDashboard.apiServices')}</span>
+                    <span className="ukf-badge ukf-badge-success">{t('adminDashboard.active')}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-ukf-600">{t('adminDashboard.security')}</span>
+                    <span className="ukf-badge ukf-badge-success">{t('adminDashboard.protected')}</span>
+                  </div>
                 </div>
-                <div className="text-left">
-                  <p className="font-semibold text-gray-900 group-hover:text-green-700">Add Question</p>
-                  <p className="text-sm text-gray-600">Create a new question</p>
+              </div>
+              
+              <div>
+                <h4 className="text-lg font-semibold text-ukf-800 mb-4 flex items-center">
+                  <TrendingUp className="h-5 w-5 mr-2 text-ukf-600" />
+                  {t('adminDashboard.performance')}
+                </h4>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-ukf-600">{t('adminDashboard.responseTime')}</span>
+                    <span className="text-ukf-700 font-medium">~45ms</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-ukf-600">{t('adminDashboard.uptime')}</span>
+                    <span className="text-ukf-700 font-medium">99.9%</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-ukf-600">{t('adminDashboard.load')}</span>
+                    <span className="text-ukf-700 font-medium">{t('adminDashboard.low')}</span>
+                  </div>
                 </div>
-              </button>
-
-              <button
-                onClick={() => navigate('/admin/exams/new')}
-                className="flex items-center p-4 border border-gray-200 rounded-xl hover:border-indigo-300 hover:bg-indigo-50 transition-all duration-200 group"
-              >
-                <div className="h-10 w-10 bg-indigo-100 rounded-xl flex items-center justify-center mr-3 group-hover:bg-indigo-200 transition-colors">
-                  <BookOpen className="h-5 w-5 text-indigo-600" />
-                </div>
-                <div className="text-left">
-                  <p className="font-semibold text-gray-900 group-hover:text-indigo-700">Create Exam</p>
-                  <p className="text-sm text-gray-600">Set up a new exam</p>
-                </div>
-              </button>
-
-              <button
-                onClick={() => navigate('/admin/results')}
-                className="flex items-center p-4 border border-gray-200 rounded-xl hover:border-purple-300 hover:bg-purple-50 transition-all duration-200 group"
-              >
-                <div className="h-10 w-10 bg-purple-100 rounded-xl flex items-center justify-center mr-3 group-hover:bg-purple-200 transition-colors">
-                  <BarChart3 className="h-5 w-5 text-purple-600" />
-                </div>
-                <div className="text-left">
-                  <p className="font-semibold text-gray-900 group-hover:text-purple-700">View Results</p>
-                  <p className="text-sm text-gray-600">Check student performance</p>
-                </div>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* System Status */}
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl border border-blue-200 p-6">
-          <div className="flex items-center mb-4">
-            <div className="h-10 w-10 bg-blue-100 rounded-xl flex items-center justify-center mr-3">
-              <Shield className="h-5 w-5 text-blue-600" />
-            </div>
-            <h3 className="text-lg font-semibold text-blue-900">System Status</h3>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-blue-800">
-            <div className="flex items-center space-x-2">
-              <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span>Database: Connected and healthy</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span>Authentication: Active</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span>API: Running smoothly</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span>Security: Protected</span>
+              </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* UKF Footer */}
+      <UKFFooter />
     </div>
   );
 };
