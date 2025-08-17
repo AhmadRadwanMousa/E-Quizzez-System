@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { LocalizationProvider } from './contexts/LocalizationContext';
 import LandingPage from './components/LandingPage';
 import Login from './components/Login';
 import AdminLogin from './components/AdminLogin';
@@ -9,11 +10,10 @@ import AdminResults from './components/AdminResults';
 import StudentsManagement from './components/StudentsManagement';
 import QuestionsManagement from './components/QuestionsManagement';
 import ExamsManagement from './components/ExamsManagement';
-import StudentManagement from './components/StudentManagement';
+import SubjectsManagement from './components/SubjectsManagement';
 import Dashboard from './components/Dashboard';
 import Exam from './components/Exam';
 import Results from './components/Results';
-import Navbar from './components/Navbar';
 import LoadingSpinner from './components/LoadingSpinner';
 
 // Protected Route Component
@@ -24,11 +24,7 @@ const ProtectedRoute = ({ children }) => {
     return <LoadingSpinner />;
   }
   
-  return isAuthenticated ? (
-    <NavigationWrapper>
-      {children}
-    </NavigationWrapper>
-  ) : <Navigate to="/login" />;
+  return isAuthenticated ? children : <Navigate to="/login" />;
 };
 
 // Admin Route Component
@@ -39,27 +35,7 @@ const AdminRoute = ({ children }) => {
     return <LoadingSpinner />;
   }
   
-  return isAdmin ? (
-    <NavigationWrapper>
-      {children}
-    </NavigationWrapper>
-  ) : <Navigate to="/admin/login" />;
-};
-
-// Navigation Wrapper Component
-const NavigationWrapper = ({ children, showNavbar = true }) => {
-  const { isAuthenticated, isAdmin } = useAuth();
-  
-  if (!showNavbar) {
-    return children;
-  }
-  
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {isAuthenticated && !isAdmin && <Navbar />}
-      {children}
-    </div>
-  );
+  return isAdmin ? children : <Navigate to="/admin/login" />;
 };
 
 // Main App Component
@@ -98,13 +74,10 @@ const AppContent = () => {
       <Route path="/admin/students" element={<AdminRoute><StudentsManagement /></AdminRoute>} />
       <Route path="/admin/questions" element={<AdminRoute><QuestionsManagement /></AdminRoute>} />
       <Route path="/admin/exams" element={<AdminRoute><ExamsManagement /></AdminRoute>} />
+      <Route path="/admin/subjects" element={<AdminRoute><SubjectsManagement /></AdminRoute>} />
       
-      {/* Catch all route */}
-      <Route path="*" element={
-        !isAuthenticated ? <LandingPage /> : (
-          isAdmin ? <Navigate to="/admin/dashboard" /> : <Navigate to="/dashboard" />
-        )
-      } />
+      {/* Catch all route - redirect to home */}
+      <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   );
 };
@@ -112,11 +85,13 @@ const AppContent = () => {
 // App Component with Providers
 const App = () => {
   return (
-    <AuthProvider>
-      <Router>
-        <AppContent />
-      </Router>
-    </AuthProvider>
+    <LocalizationProvider>
+      <AuthProvider>
+        <Router>
+          <AppContent />
+        </Router>
+      </AuthProvider>
+    </LocalizationProvider>
   );
 };
 

@@ -1,14 +1,37 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Edit, Trash2, ArrowLeft, Filter, Search, BookOpen, FileText, Target, TrendingUp } from 'lucide-react';
+import { 
+  Search, 
+  Edit, 
+  Trash2, 
+  Eye, 
+  Plus,
+  Download,
+  Upload,
+  X,
+  Save,
+  FileText,
+  BookOpen,
+  CheckCircle,
+  XCircle,
+  HelpCircle,
+  Target
+} from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
+import { useLocalization } from '../contexts/LocalizationContext';
+import UKFHeader from './UKFHeader';
+import UKFFooter from './UKFFooter';
 
 const QuestionsManagement = () => {
   const [questions, setQuestions] = useState([]);
   const [filteredQuestions, setFilteredQuestions] = useState([]);
+  const [subjects, setSubjects] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
   const [showForm, setShowForm] = useState(false);
+  const [showQuestionDetails, setShowQuestionDetails] = useState(false);
+  const [selectedQuestion, setSelectedQuestion] = useState(null);
   const [editingQuestion, setEditingQuestion] = useState(null);
   const [formData, setFormData] = useState({
     question_text: '',
@@ -17,79 +40,111 @@ const QuestionsManagement = () => {
     option_c: '',
     option_d: '',
     correct_answer: '',
-    subject: '',
-    difficulty: 'medium'
+    subject_id: '',
+    difficulty: '',
+    marks: 1
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedSubject, setSelectedSubject] = useState('');
-  const [selectedDifficulty, setSelectedDifficulty] = useState('');
-  const [subjects, setSubjects] = useState([]);
+  const [importing, setImporting] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const navigate = useNavigate();
   const { getToken } = useAuth();
+  const { t } = useLocalization();
 
   useEffect(() => {
     fetchQuestions();
+    fetchSubjects();
   }, []);
 
   useEffect(() => {
     filterQuestions();
-  }, [questions, searchTerm, selectedSubject, selectedDifficulty]);
+  }, [searchTerm, questions]);
+
+  const fetchSubjects = async () => {
+    try {
+      const token = getToken();
+      const response = await axios.get('/api/admin/subjects', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      const subjectsData = response.data.data || response.data || [];
+      setSubjects(subjectsData);
+      
+    } catch (error) {
+      console.error('Error fetching subjects:', error);
+      setSubjects([]);
+    }
+  };
 
   const fetchQuestions = async () => {
     try {
+      setLoading(true);
       const token = getToken();
-      const [questionsRes, subjectsRes] = await Promise.all([
-        axios.get('/api/admin/questions', {
-          headers: { Authorization: `Bearer ${token}` }
-        }),
-        axios.get('/api/admin/subjects', {
-          headers: { Authorization: `Bearer ${token}` }
-        })
-      ]);
-      setQuestions(questionsRes.data.data);
-      setSubjects(subjectsRes.data.data);
+      
+      const response = await axios.get('/api/admin/questions', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      const questionsData = response.data.data || response.data || [];
+      setQuestions(questionsData);
+      setFilteredQuestions(questionsData);
+      
     } catch (error) {
-      setError('Failed to fetch questions');
+      setError(error.response?.data?.message || error.message || t('questions.failedToLoad'));
+      setQuestions([]);
+      setFilteredQuestions([]);
     } finally {
       setLoading(false);
     }
   };
 
   const filterQuestions = () => {
-    let filtered = [...questions];
+    let filtered = questions;
 
-    // Filter by search term
+    // Apply search filter
     if (searchTerm) {
       filtered = filtered.filter(question =>
-        question.question_text.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        question.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        question.option_a.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        question.option_b.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        question.option_c.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        question.option_d.toLowerCase().includes(searchTerm.toLowerCase())
+        question.question_text?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        question.subject_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        question.difficulty?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        question.correct_answer?.toLowerCase().includes(searchTerm.toLowerCase())
       );
-    }
-
-    // Filter by subject
-    if (selectedSubject) {
-      filtered = filtered.filter(question => question.subject === selectedSubject);
-    }
-
-    // Filter by difficulty
-    if (selectedDifficulty) {
-      filtered = filtered.filter(question => question.difficulty === selectedDifficulty);
     }
 
     setFilteredQuestions(filtered);
   };
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const resetForm = () => {
+    setEditingQuestion(null);
+    setFormData({ 
+      question_text: '', 
+      option_a: '', 
+      option_b: '', 
+      option_c: '', 
+      option_d: '', 
+      correct_answer: '', 
+      subject_id: '',
+      difficulty: '',
+      marks: 1
     });
+    setShowForm(false);
+    setError('');
+    setSuccess('');
+  };
+
+  const handleViewQuestion = (question) => {
+    setSelectedQuestion(question);
+    setShowQuestionDetails(true);
+  };
+
+  const closeQuestionDetails = () => {
+    setShowQuestionDetails(false);
+    setSelectedQuestion(null);
   };
 
   const handleSubmit = async (e) => {
@@ -100,434 +155,365 @@ const QuestionsManagement = () => {
     try {
       const token = getToken();
       
-      if (editingQuestion) {
-        // Update existing question
-        await axios.put(`/api/admin/questions/${editingQuestion.id}`, formData, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        setSuccess('Question updated successfully!');
-      } else {
-        // Create new question
-        await axios.post('/api/admin/questions', formData, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        setSuccess('Question created successfully!');
+      // Ensure marks is a valid number
+      let marksValue = parseInt(formData.marks);
+      if (isNaN(marksValue) || marksValue < 1 || marksValue > 10) {
+        marksValue = 1; // Default to 1 if invalid
       }
-
+      
+      const submissionData = {
+        ...formData,
+        marks: marksValue
+      };
+      
+      if (editingQuestion) {
+        const response = await axios.put(`/api/admin/questions/${editingQuestion.id}`, submissionData, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setSuccess(t('questions.updateSuccess'));
+      } else {
+        const response = await axios.post('/api/admin/questions', submissionData, { 
+          headers: { Authorization: `Bearer ${token}` } 
+        });
+        setSuccess(t('questions.createSuccess'));
+      }
+      
       // Reset form and refresh questions
-      setFormData({
-        question_text: '',
-        option_a: '',
-        option_b: '',
-        option_c: '',
-        option_d: '',
-        correct_answer: '',
-        subject: '',
-        difficulty: 'medium'
-      });
-      setEditingQuestion(null);
-      setShowForm(false);
-      fetchQuestions();
+      resetForm();
+      await fetchQuestions(); // Wait for the fetch to complete
+      
     } catch (error) {
-      setError(error.response?.data?.message || 'Operation failed');
+      setError(error.response?.data?.message || error.message || t('questions.operationFailed'));
     }
   };
 
   const handleEdit = (question) => {
+    
     setEditingQuestion(question);
-    setFormData({
-      question_text: question.question_text,
-      option_a: question.option_a,
-      option_b: question.option_b,
-      option_c: question.option_c,
-      option_d: question.option_d,
-      correct_answer: question.correct_answer,
-      subject: question.subject,
-      difficulty: question.difficulty || 'medium'
+    setFormData({ 
+      question_text: question.question_text || '', 
+      option_a: question.option_a || '', 
+      option_b: question.option_b || '', 
+      option_c: question.option_c || '', 
+      option_d: question.option_d || '', 
+      correct_answer: question.correct_answer || '', 
+      subject_id: question.subject_id || '',
+      difficulty: question.difficulty || '',
+      marks: parseInt(question.marks) || 1
     });
+    
     setShowForm(true);
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this question?')) return;
+  const handleDeleteQuestion = async (questionId) => {
+    if (window.confirm(t('questions.confirmDelete'))) {
+      try {
+        const token = getToken();
+        await axios.delete(`/api/admin/questions/${questionId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setSuccess(t('questions.deleteSuccess'));
+        fetchQuestions();
+      } catch (error) {
+        console.error('Delete error:', error);
+        setError(t('questions.deleteFailed'));
+      }
+    }
+  };
 
+  const handleExport = async () => {
+    setExporting(true);
     try {
       const token = getToken();
-      await axios.delete(`/api/admin/questions/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
+      const response = await axios.get('/api/admin/questions/export', {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: 'blob'
       });
-      setSuccess('Question deleted successfully!');
-      fetchQuestions();
+      
+      // Create download link
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'questions.csv');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      
+      setSuccess(t('questions.exportSuccess'));
     } catch (error) {
-      setError('Failed to delete question');
+      console.error('Export error:', error);
+      setError(t('questions.exportFailed'));
+    } finally {
+      setExporting(false);
     }
   };
 
-  const resetForm = () => {
-    setFormData({
-      question_text: '',
-      option_a: '',
-      option_b: '',
-      option_c: '',
-      option_d: '',
-      correct_answer: '',
-      subject: '',
-      difficulty: 'medium'
-    });
-    setEditingQuestion(null);
-    setShowForm(false);
+  const handleImport = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = [
+      'text/csv',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    ];
+    
+    if (!allowedTypes.includes(file.type)) {
+      setError(t('questions.invalidFileType'));
+      event.target.value = '';
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setError(t('questions.fileTooLarge'));
+      event.target.value = '';
+      return;
+    }
+
+    setImporting(true);
     setError('');
     setSuccess('');
-  };
+    
+    try {
+      const token = getToken();
+      const formData = new FormData();
+      formData.append('file', file);
 
-  const clearFilters = () => {
-    setSearchTerm('');
-    setSelectedSubject('');
-    setSelectedDifficulty('');
-  };
-
-  const getDifficultyColor = (difficulty) => {
-    switch (difficulty) {
-      case 'easy': return 'bg-green-100 text-green-800 border-green-200';
-      case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'hard': return 'bg-red-100 text-red-800 border-red-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
-
-  const getDifficultyIcon = (difficulty) => {
-    switch (difficulty) {
-      case 'easy': return '🟢';
-      case 'medium': return '🟡';
-      case 'hard': return '🔴';
-      default: return '⚪';
+      const response = await axios.post('/api/admin/questions/import', formData, {
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      
+      setSuccess(t('questions.importSuccess'));
+      fetchQuestions();
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || 
+                          error.response?.data?.error || 
+                          error.message || 
+                          t('questions.importFailed');
+      setError(errorMessage);
+    } finally {
+      setImporting(false);
+      // Reset file input
+      event.target.value = '';
     }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center">
+      <div className="min-h-screen bg-ukf-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-blue-600 font-medium">Loading questions...</p>
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-ukf-700 mx-auto mb-4"></div>
+          <p className="text-ukf-700 font-medium">{t('questions.loading')}</p>
         </div>
       </div>
     );
   }
 
-  // Calculate statistics
-  const totalQuestions = questions.length;
-  const totalSubjects = subjects.length;
-  const easyQuestions = questions.filter(q => q.difficulty === 'easy').length;
-  const mediumQuestions = questions.filter(q => q.difficulty === 'medium').length;
-  const hardQuestions = questions.filter(q => q.difficulty === 'hard').length;
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
-      {/* Header */}
-      <header className="relative overflow-hidden bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-xl">
-        <div className="absolute inset-0 bg-black opacity-10"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div className="flex items-center">
-              <button
-                onClick={() => navigate('/admin/dashboard')}
-                className="mr-4 p-2 text-white hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors"
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </button>
-              <div className="h-12 w-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center backdrop-blur-sm mr-4">
-                <FileText className="h-7 w-7" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold">Questions Management</h1>
-                <p className="text-blue-100 text-sm">Create and manage your question bank</p>
-              </div>
-            </div>
-            <button
-              onClick={() => setShowForm(true)}
-              className="bg-white text-blue-600 hover:bg-blue-50 font-semibold py-3 px-6 rounded-xl flex items-center space-x-2 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl"
-            >
-              <Plus className="h-5 w-5" />
-              <span>Add Question</span>
-            </button>
-          </div>
-        </div>
-        
-        {/* Decorative elements */}
-        <div className="absolute top-0 left-0 w-32 h-32 bg-white opacity-5 rounded-full -translate-x-16 -translate-y-16"></div>
-        <div className="absolute bottom-0 right-0 w-40 h-40 bg-white opacity-5 rounded-full translate-x-20 translate-y-20"></div>
-      </header>
+    <div className="min-h-screen bg-ukf-50">
+      {/* UKF Header */}
+      <UKFHeader
+        title={t('questions.managementTitle')}
+        subtitle={t('questions.managementSubtitle')}
+        showUserMenu={true}
+        showLanguageSwitcher={true}
+      />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Main Content */}
+      <div className="container-ukf py-8">
+        {/* Page Title Section */}
+        <div className="mb-8 text-center">
+          <h2 className="text-3xl font-bold text-ukf-900 mb-2">{t('questions.pageTitle')}</h2>
+          <p className="text-ukf-600 text-lg">{t('questions.pageDescription')}</p>
+        </div>
+
         {/* Messages */}
         {error && (
           <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-xl">
-            <div className="flex items-center">
-              <span className="text-lg mr-2">❌</span>
-              {error}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <span className="text-lg mr-2">❌</span>
+                {error}
+              </div>
+              <button 
+                onClick={() => setError('')}
+                className="text-red-500 hover:text-red-700"
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
           </div>
         )}
         {success && (
           <div className="mb-6 bg-green-50 border border-green-200 text-green-700 px-6 py-4 rounded-xl">
-            <div className="flex items-center">
-              <span className="text-lg mr-2">✅</span>
-              {success}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <span className="text-lg mr-2">✅</span>
+                {success}
+              </div>
+              <button 
+                onClick={() => setSuccess('')}
+                className="text-green-500 hover:text-green-700"
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
           </div>
         )}
 
-        {/* Statistics Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Questions</p>
-                <p className="text-3xl font-bold text-blue-600">{totalQuestions}</p>
-              </div>
-              <div className="h-12 w-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                <FileText className="h-6 w-6 text-blue-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Subjects</p>
-                <p className="text-3xl font-bold text-green-600">{totalSubjects}</p>
-              </div>
-              <div className="h-12 w-12 bg-green-100 rounded-xl flex items-center justify-center">
-                <BookOpen className="h-6 w-6 text-green-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Easy</p>
-                <p className="text-3xl font-bold text-green-600">{easyQuestions}</p>
-              </div>
-              <div className="h-12 w-12 bg-green-100 rounded-xl flex items-center justify-center">
-                <span className="text-2xl">🟢</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Medium</p>
-                <p className="text-3xl font-bold text-yellow-600">{mediumQuestions}</p>
-              </div>
-              <div className="h-12 w-12 bg-yellow-100 rounded-xl flex items-center justify-center">
-                <span className="text-2xl">🟡</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Hard</p>
-                <p className="text-3xl font-bold text-red-600">{hardQuestions}</p>
-              </div>
-              <div className="h-12 w-12 bg-red-100 rounded-xl flex items-center justify-center">
-                <span className="text-2xl">🔴</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Filters Section */}
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-              <Filter className="h-5 w-5 mr-2 text-blue-600" />
-              Filter Questions
-            </h3>
-            <button
-              onClick={clearFilters}
-              className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-            >
-              Clear Filters
-            </button>
+        {/* Stats Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="ukf-stat-card">
+            <div className="ukf-stat-number text-ukf-700">{questions.length}</div>
+            <div className="ukf-stat-label">{t('questions.totalQuestions')}</div>
+            <FileText className="h-8 w-8 text-ukf-400 mx-auto mt-3" />
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Search Questions
-              </label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search by question text, subject, or options..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="input-field w-full pl-10"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Filter by Subject
-              </label>
-              <select
-                value={selectedSubject}
-                onChange={(e) => setSelectedSubject(e.target.value)}
-                className="input-field w-full"
-              >
-                <option value="">All Subjects</option>
-                {subjects.map((subject) => (
-                  <option key={subject.subject} value={subject.subject}>
-                    {subject.subject} ({subject.question_count})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Filter by Difficulty
-              </label>
-              <select
-                value={selectedDifficulty}
-                onChange={(e) => setSelectedDifficulty(e.target.value)}
-                className="input-field w-full"
-              >
-                <option value="">All Difficulties</option>
-                <option value="easy">Easy</option>
-                <option value="medium">Medium</option>
-                <option value="hard">Hard</option>
-              </select>
-            </div>
+          <div className="ukf-stat-card">
+            <div className="ukf-stat-number text-ukf-700">{questions.filter(q => q.marks > 1).length}</div>
+            <div className="ukf-stat-label">{t('questions.multipleMarks')}</div>
+            <CheckCircle className="h-8 w-8 text-ukf-400 mx-auto mt-3" />
           </div>
-
-          <div className="mt-4 text-sm text-gray-600">
-            Showing {filteredQuestions.length} of {totalQuestions} questions
-            {selectedSubject && ` in ${selectedSubject}`}
-            {selectedDifficulty && ` (${selectedDifficulty} difficulty)`}
+          
+          <div className="ukf-stat-card">
+            <div className="ukf-stat-number text-ukf-700">{questions.filter(q => q.marks === 1).length}</div>
+            <div className="ukf-stat-label">{t('questions.singleMark')}</div>
+            <HelpCircle className="h-8 w-8 text-ukf-400 mx-auto mt-3" />
           </div>
         </div>
 
         {/* Question Form */}
         {showForm && (
-          <div className="mb-8 bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              {editingQuestion ? 'Edit Question' : 'Add New Question'}
-            </h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="ukf-card p-6 mb-8">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-semibold text-ukf-900">
+                {editingQuestion ? t('questions.editQuestion') : t('questions.addNewQuestion')}
+              </h3>
+              <button
+                onClick={resetForm}
+                className="p-2 text-ukf-600 hover:text-ukf-700 hover:bg-ukf-100 rounded-lg transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Question Text */}
+              <div>
+                <label className="block text-sm font-medium text-ukf-700 mb-2">{t('questions.questionText')} *</label>
+                <textarea
+                  name="question_text"
+                  required
+                  value={formData.question_text}
+                  onChange={handleChange}
+                  rows={4}
+                  className="ukf-input resize-none"
+                  placeholder={t('questions.questionTextPlaceholder')}
+                />
+              </div>
+
+              {/* Subject and Difficulty */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Question Text *
-                  </label>
-                  <textarea
-                    name="question_text"
+                  <label className="block text-sm font-medium text-ukf-700 mb-2">{t('questions.subject')} *</label>
+                  <select
+                    name="subject_id"
                     required
-                    value={formData.question_text}
+                    value={formData.subject_id}
                     onChange={handleChange}
-                    className="input-field w-full"
-                    rows="3"
-                    placeholder="Enter the question..."
-                  />
+                    className="ukf-input"
+                  >
+                    <option value="">{t('questions.selectSubject')}</option>
+                    {/* Assuming subjects are fetched from an API or context */}
+                    {/* For now, a placeholder for demonstration */}
+                    {subjects.map(subject => (
+                      <option key={subject.id} value={subject.id}>{subject.name}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Subject *
-                  </label>
-                  <input
-                    type="text"
-                    name="subject"
+                  <label className="block text-sm font-medium text-ukf-700 mb-2">{t('questions.difficulty')} *</label>
+                  <select
+                    name="difficulty"
                     required
-                    value={formData.subject}
+                    value={formData.difficulty}
                     onChange={handleChange}
-                    className="input-field w-full"
-                    placeholder="e.g., Mathematics, Science"
-                  />
+                    className="ukf-input"
+                  >
+                    <option value="">{t('questions.selectDifficulty')}</option>
+                    <option value="easy">{t('questions.easy')}</option>
+                    <option value="medium">{t('questions.medium')}</option>
+                    <option value="hard">{t('questions.hard')}</option>
+                  </select>
                 </div>
               </div>
 
+              {/* Options Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Option A *
-                  </label>
+                  <label className="block text-sm font-medium text-ukf-700 mb-2">Option A *</label>
                   <input
-                    type="text"
                     name="option_a"
                     required
                     value={formData.option_a}
                     onChange={handleChange}
-                    className="input-field w-full"
-                    placeholder="First option"
+                    className="ukf-input"
+                    placeholder="Enter option A"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Option B *
-                  </label>
+                  <label className="block text-sm font-medium text-ukf-700 mb-2">Option B *</label>
                   <input
-                    type="text"
                     name="option_b"
                     required
                     value={formData.option_b}
                     onChange={handleChange}
-                    className="input-field w-full"
-                    placeholder="Second option"
+                    className="ukf-input"
+                    placeholder="Enter option B"
                   />
                 </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Option C *
-                  </label>
+                  <label className="block text-sm font-medium text-ukf-700 mb-2">Option C *</label>
                   <input
-                    type="text"
                     name="option_c"
                     required
                     value={formData.option_c}
                     onChange={handleChange}
-                    className="input-field w-full"
-                    placeholder="Third option"
+                    className="ukf-input"
+                    placeholder="Enter option C"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Option D *
-                  </label>
+                  <label className="block text-sm font-medium text-ukf-700 mb-2">Option D *</label>
                   <input
-                    type="text"
                     name="option_d"
                     required
                     value={formData.option_d}
                     onChange={handleChange}
-                    className="input-field w-full"
-                    placeholder="Fourth option"
+                    className="ukf-input"
+                    placeholder="Enter option D"
                   />
                 </div>
               </div>
 
+              {/* Correct Answer and Marks */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Correct Answer *
-                  </label>
+                  <label className="block text-sm font-medium text-ukf-700 mb-2">{t('questions.correctAnswer')} *</label>
                   <select
                     name="correct_answer"
                     required
                     value={formData.correct_answer}
                     onChange={handleChange}
-                    className="input-field w-full"
+                    className="ukf-input"
                   >
-                    <option value="">Select correct answer</option>
+                    <option value="">{t('questions.selectCorrectAnswer')}</option>
                     <option value="A">A</option>
                     <option value="B">B</option>
                     <option value="C">C</option>
@@ -535,142 +521,375 @@ const QuestionsManagement = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Difficulty
-                  </label>
-                  <select
-                    name="difficulty"
-                    value={formData.difficulty}
+                  <label className="block text-sm font-medium text-ukf-700 mb-2">{t('questions.marks')} *</label>
+                  <input
+                    type="number"
+                    name="marks"
+                    required
+                    min="1"
+                    max="10"
+                    value={formData.marks}
                     onChange={handleChange}
-                    className="input-field w-full"
-                  >
-                    <option value="easy">Easy</option>
-                    <option value="medium">Medium</option>
-                    <option value="hard">Hard</option>
-                  </select>
+                    className="ukf-input"
+                    placeholder="1"
+                  />
+                  <p className="text-xs text-ukf-500 mt-1">Enter a value between 1 and 10</p>
                 </div>
               </div>
 
-              <div className="flex justify-end space-x-3">
+              {/* Form Actions */}
+              <div className="flex justify-end space-x-3 pt-4">
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="btn-secondary"
+                  className="ukf-button-secondary"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button
                   type="submit"
-                  className="btn-primary"
+                  className="ukf-button-primary flex items-center space-x-2"
                 >
-                  {editingQuestion ? 'Update Question' : 'Create Question'}
+                  <Save className="h-4 w-4" />
+                  <span>{editingQuestion ? t('questions.updateQuestion') : t('questions.createQuestion')}</span>
                 </button>
               </div>
             </form>
           </div>
         )}
 
-        {/* Questions List */}
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-              <FileText className="h-5 w-5 mr-2 text-blue-600" />
-              Questions ({filteredQuestions.length})
-            </h3>
-          </div>
-          <div className="divide-y divide-gray-200">
-            {filteredQuestions.map((question) => (
-              <div key={question.id} className="p-6 hover:bg-gray-50 transition-colors">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-3 mb-3">
-                      <h4 className="text-lg font-semibold text-gray-900">
-                        {question.question_text}
-                      </h4>
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border ${getDifficultyColor(question.difficulty)}`}>
-                        {getDifficultyIcon(question.difficulty)} {question.difficulty}
-                      </span>
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800 border border-blue-200">
-                        {question.subject}
-                      </span>
+        {/* Question Details Modal */}
+        {showQuestionDetails && selectedQuestion && (
+          <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+            <div className="ukf-card max-w-4xl w-full max-h-[90vh] overflow-y-auto bg-white shadow-2xl border-0">
+              {/* Modal Header */}
+              <div className="bg-gradient-to-r from-ukf-700 to-ukf-600 text-white p-6 rounded-t-xl">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center space-x-4">
+                    <div className="h-12 w-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                      <FileText className="h-6 w-6 text-white" />
                     </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                      <div className="space-y-2">
-                        <p className="text-sm">
-                          <span className={`font-medium ${question.correct_answer === 'A' ? 'text-green-600' : 'text-gray-700'}`}>
-                            A: {question.option_a}
-                          </span>
-                          {question.correct_answer === 'A' && <span className="ml-2 text-green-600">✓</span>}
-                        </p>
-                        <p className="text-sm">
-                          <span className={`font-medium ${question.correct_answer === 'B' ? 'text-green-600' : 'text-gray-700'}`}>
-                            B: {question.option_b}
-                          </span>
-                          {question.correct_answer === 'B' && <span className="ml-2 text-green-600">✓</span>}
-                        </p>
-                      </div>
-                      <div className="space-y-2">
-                        <p className="text-sm">
-                          <span className={`font-medium ${question.correct_answer === 'C' ? 'text-green-600' : 'text-gray-700'}`}>
-                            C: {question.option_c}
-                          </span>
-                          {question.correct_answer === 'C' && <span className="ml-2 text-green-600">✓</span>}
-                        </p>
-                        <p className="text-sm">
-                          <span className={`font-medium ${question.correct_answer === 'D' ? 'text-green-600' : 'text-gray-700'}`}>
-                            D: {question.option_d}
-                          </span>
-                          {question.correct_answer === 'D' && <span className="ml-2 text-green-600">✓</span>}
-                        </p>
-                      </div>
+                    <div>
+                      <h3 className="text-2xl font-bold">{t('questions.questionDetails')}</h3>
+                      <p className="text-ukf-100 text-sm">{t('questions.comprehensiveInfo')}</p>
                     </div>
                   </div>
-                  <div className="flex space-x-2 ml-4">
-                    <button
-                      onClick={() => handleEdit(question)}
-                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                      title="Edit Question"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(question.id)}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      title="Delete Question"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
+                  <button
+                    onClick={closeQuestionDetails}
+                    className="p-2 text-white hover:text-ukf-200 hover:bg-white hover:bg-opacity-20 rounded-full transition-all duration-200"
+                  >
+                    <X className="h-6 w-6" />
+                  </button>
                 </div>
               </div>
-            ))}
-            {filteredQuestions.length === 0 && (
-              <div className="p-12 text-center text-gray-500">
-                <FileText className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  {questions.length === 0 ? 'No questions found' : 'No questions match your filters'}
-                </h3>
-                <p className="text-gray-600 mb-4">
-                  {questions.length === 0 
-                    ? 'Create your first question to get started!' 
-                    : 'Try adjusting your search criteria or filters.'
-                  }
-                </p>
-                {questions.length === 0 && (
+              
+              {/* Modal Content */}
+              <div className="p-8">
+                {/* Question Content */}
+                <div className="mb-8">
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-100">
+                    <h5 className="text-lg font-semibold text-blue-900 mb-4 flex items-center">
+                      <FileText className="h-5 w-5 mr-2 text-blue-600" />
+                      {t('questions.questionText')}
+                    </h5>
+                    <div className="bg-white p-6 rounded-lg border border-blue-200">
+                      <p className="text-blue-900 text-lg leading-relaxed whitespace-pre-wrap">
+                        {selectedQuestion.question_text || 'No question text available'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Options Grid */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                  {/* Left Column - Options A & B */}
+                  <div className="space-y-4">
+                    <div className="bg-gradient-to-r from-emerald-50 to-green-50 p-4 rounded-xl border border-emerald-100">
+                      <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-emerald-200">
+                        <span className="text-emerald-700 font-bold text-lg">A</span>
+                        <span className="text-emerald-900">{selectedQuestion.option_a}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-gradient-to-r from-emerald-50 to-green-50 p-4 rounded-xl border border-emerald-100">
+                      <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-emerald-200">
+                        <span className="text-emerald-700 font-bold text-lg">B</span>
+                        <span className="text-emerald-900">{selectedQuestion.option_b}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Right Column - Options C & D */}
+                  <div className="space-y-4">
+                    <div className="bg-gradient-to-r from-emerald-50 to-green-50 p-4 rounded-xl border border-emerald-100">
+                      <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-emerald-200">
+                        <span className="text-emerald-700 font-bold text-lg">C</span>
+                        <span className="text-emerald-900">{selectedQuestion.option_c}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-gradient-to-r from-emerald-50 to-green-50 p-4 rounded-xl border border-emerald-100">
+                      <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-emerald-200">
+                        <span className="text-emerald-700 font-bold text-lg">D</span>
+                        <span className="text-emerald-900">{selectedQuestion.option_d}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Answer and Marks */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                  <div className="bg-gradient-to-r from-purple-50 to-violet-50 p-6 rounded-xl border border-purple-100">
+                    <h5 className="text-lg font-semibold text-purple-900 mb-4 flex items-center">
+                      <CheckCircle className="h-5 w-5 mr-2 text-purple-600" />
+                      {t('questions.correctAnswer')}
+                    </h5>
+                    <div className="bg-white p-4 rounded-lg border border-purple-200 text-center">
+                      <span className="text-4xl font-bold text-purple-600">{selectedQuestion.correct_answer}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-6 rounded-xl border border-amber-100">
+                    <h5 className="text-lg font-semibold text-amber-900 mb-4 flex items-center">
+                      <BookOpen className="h-5 w-5 mr-2 text-amber-600" />
+                      {t('questions.marks')}
+                    </h5>
+                    <div className="bg-white p-4 rounded-lg border border-amber-200 text-center">
+                      <span className="text-4xl font-bold text-amber-600">{selectedQuestion.marks}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-100">
+                    <h5 className="text-lg font-semibold text-blue-900 mb-4 flex items-center">
+                      <BookOpen className="h-5 w-5 mr-2 text-blue-600" />
+                      {t('questions.subject')}
+                    </h5>
+                    <div className="bg-white p-4 rounded-lg border border-blue-200 text-center">
+                      <span className="text-2xl font-bold text-blue-600">{selectedQuestion.subject_name || t('questions.general')}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-gradient-to-r from-emerald-50 to-green-50 p-6 rounded-xl border border-emerald-100">
+                    <h5 className="text-lg font-semibold text-emerald-900 mb-4 flex items-center">
+                      <Target className="h-5 w-5 mr-2 text-emerald-600" />
+                      {t('questions.difficulty')}
+                    </h5>
+                    <div className="bg-white p-4 rounded-lg border border-emerald-200 text-center">
+                      <span className="text-2xl font-bold text-emerald-600 capitalize">{selectedQuestion.difficulty || t('questions.general')}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-4 pt-6 border-t border-ukf-200">
                   <button
-                    onClick={() => setShowForm(true)}
-                    className="btn-primary"
+                    onClick={() => {
+                      closeQuestionDetails();
+                      handleEdit(selectedQuestion);
+                    }}
+                    className="ukf-button-secondary flex items-center justify-center space-x-2 px-6 py-3 text-lg"
                   >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create First Question
+                    <Edit className="h-5 w-5" />
+                    <span>{t('questions.editQuestion')}</span>
                   </button>
-                )}
+                  <button
+                    onClick={() => {
+                      closeQuestionDetails();
+                      handleDeleteQuestion(selectedQuestion.id);
+                    }}
+                    className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-6 py-3 rounded-xl transition-all duration-200 flex items-center justify-center space-x-2 text-lg font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                  >
+                    <Trash2 className="h-5 w-5" />
+                    <span>{t('questions.deleteQuestion')}</span>
+                  </button>
+                </div>
               </div>
-            )}
+            </div>
+          </div>
+        )}
+
+        {/* Controls Section */}
+        <div className="ukf-card p-6 mb-8">
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center space-y-4 lg:space-y-0">
+            <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
+              {/* Search */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-ukf-400" />
+                <input
+                  type="text"
+                  placeholder={t('questions.searchPlaceholder')}
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="ukf-input pl-10 pr-4 w-64"
+                />
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex space-x-3">
+              <button 
+                onClick={() => setShowForm(true)}
+                className="ukf-button-primary flex items-center space-x-2"
+              >
+                <Plus className="h-4 w-4" />
+                <span>{t('questions.addQuestion')}</span>
+              </button>
+              
+              <button 
+                onClick={fetchQuestions}
+                disabled={loading}
+                className="ukf-button-secondary flex items-center space-x-2"
+              >
+                {loading ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-ukf-600"></div>
+                ) : (
+                  <div className="h-4 w-4">🔄</div>
+                )}
+                <span>{loading ? t('questions.loading') : t('questions.refresh')}</span>
+              </button>
+              
+              <button 
+                onClick={handleExport}
+                disabled={exporting}
+                className="ukf-button-secondary flex items-center space-x-2"
+              >
+                {exporting ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-ukf-600"></div>
+                ) : (
+                  <Download className="h-4 w-4" />
+                )}
+                <span>{exporting ? t('questions.exporting') : t('questions.export')}</span>
+              </button>
+              
+              <label className="ukf-button-secondary flex items-center space-x-2 cursor-pointer">
+                <Upload className="h-4 w-4" />
+                <span>{importing ? t('questions.importing') : t('questions.import')}</span>
+                <input
+                  type="file"
+                  accept=".csv,.xlsx,.xls"
+                  onChange={handleImport}
+                  className="hidden"
+                  disabled={importing}
+                />
+              </label>
+            </div>
           </div>
         </div>
+
+        {/* Questions Table */}
+        <div className="ukf-card overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="ukf-table">
+              <thead>
+                <tr>
+                  <th>{t('questions.questionText')}</th>
+                  <th>{t('questions.subject')}</th>
+                  <th>{t('questions.difficulty')}</th>
+                  <th>{t('questions.correctAnswer')}</th>
+                  <th>{t('questions.marks')}</th>
+                  <th>{t('questions.created')}</th>
+                  <th>{t('questions.actions')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredQuestions.map((question, index) => {
+                  return (
+                    <tr key={question.id} className="hover:bg-ukf-50">
+                      <td>
+                        <div className="max-w-md">
+                          <p 
+                            className="text-ukf-900 font-medium leading-relaxed cursor-help"
+                            title={question.question_text && question.question_text.length > 100 ? question.question_text : ''}
+                          >
+                            {question.question_text ? 
+                              (question.question_text.length > 100 ? 
+                                <span>
+                                  {question.question_text.substring(0, 100)}
+                                  <span className="text-ukf-500 font-normal">...</span>
+                                </span> : 
+                                question.question_text
+                              ) : 
+                              'No question text'
+                            }
+                          </p>
+                          {question.question_text && question.question_text.length > 100 && (
+                            <p className="text-xs text-ukf-500 mt-1">
+                              Click view button to see full question
+                            </p>
+                          )}
+                        </div>
+                      </td>
+                      <td>
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-ukf-100 text-ukf-800 border border-ukf-200">
+                          {question.subject_name || 'No subject'}
+                        </span>
+                      </td>
+                      <td>
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-ukf-100 text-ukf-800 border border-ukf-200">
+                          {question.difficulty || t('questions.general')}
+                        </span>
+                      </td>
+                      <td>
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 border border-green-200">
+                          <CheckCircle className="h-4 w-4 mr-1" />
+                          {question.correct_answer || 'No answer'}
+                        </span>
+                      </td>
+                      <td>
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-ukf-100 text-ukf-800 border border-ukf-200">
+                          {(() => {
+                            const marksValue = parseInt(question.marks) || 0;
+                            return `${marksValue} ${marksValue === 1 ? t('questions.mark') : t('questions.marksPlural')}`;
+                          })()}
+                        </span>
+                      </td>
+                      <td className="text-ukf-600 text-sm">
+                        {question.created_at ? new Date(question.created_at).toLocaleDateString() : 'No date'}
+                      </td>
+                      <td>
+                        <div className="flex items-center space-x-2">
+                          <button 
+                            onClick={() => handleViewQuestion(question)}
+                            className="p-2 text-ukf-600 hover:text-ukf-700 hover:bg-ukf-100 rounded-lg transition-colors"
+                            title={t('questions.viewQuestion')}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>
+                          <button 
+                            onClick={() => handleEdit(question)}
+                            className="p-2 text-ukf-600 hover:text-ukf-700 hover:bg-ukf-100 rounded-lg transition-colors"
+                            title={t('questions.editQuestion')}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteQuestion(question.id)}
+                            className="p-2 text-red-600 hover:text-red-700 hover:bg-red-100 rounded-lg transition-colors"
+                            title={t('questions.deleteQuestion')}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {filteredQuestions.length === 0 && (
+            <div className="text-center py-12">
+              <FileText className="h-16 w-16 text-ukf-300 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-ukf-600 mb-2">{t('questions.noQuestionsFound')}</h3>
+              <p className="text-ukf-500">{t('questions.noQuestionsDescription')}</p>
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* UKF Footer */}
+      <UKFFooter />
     </div>
   );
 };

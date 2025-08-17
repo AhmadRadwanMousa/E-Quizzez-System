@@ -103,7 +103,7 @@ const AdminResults = () => {
     const filtered = getFilteredResults();
     if (filtered.length === 0) return { total: 0, average: 0, highest: 0, lowest: 100 };
     
-    const scores = filtered.map(r => (r.score / r.total_questions) * 100);
+    const scores = filtered.map(r => r.percentage || 0);
     return {
       total: filtered.length,
       average: Math.round(scores.reduce((a, b) => a + b, 0) / scores.length),
@@ -115,13 +115,13 @@ const AdminResults = () => {
   const exportToCSV = () => {
     const filtered = getFilteredResults();
     const csvContent = [
-      ['Student', 'Exam', 'Score', 'Total Questions', 'Percentage', 'Time Taken', 'Submitted'],
+      ['Student', 'Exam', 'Score', 'Total Marks', 'Percentage', 'Time Taken', 'Submitted'],
       ...filtered.map(r => [
         getStudentName(r.student_id),
         getExamTitle(r.exam_id),
         r.score,
-        r.total_questions,
-        `${Math.round((r.score / r.total_questions) * 100)}%`,
+        r.total_marks,
+        `${r.percentage || 0}%`,
         formatTime(r.time_taken),
         formatDate(r.submitted_at)
       ])
@@ -335,7 +335,7 @@ const AdminResults = () => {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {filteredResults.map((result) => {
-                    const percentage = Math.round((result.score / result.total_questions) * 100);
+                    const percentage = result.percentage || 0;
                     return (
                       <tr key={result.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -352,7 +352,7 @@ const AdminResults = () => {
                           <div className="flex items-center space-x-2">
                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getScoreColor(percentage)}`}>
                               {getScoreIcon(percentage)}
-                              <span className="ml-1">{result.score}/{result.total_questions}</span>
+                              <span className="ml-1">{result.score}/{result.total_marks} marks</span>
                             </span>
                             <span className="text-sm text-gray-500">({percentage}%)</span>
                           </div>
