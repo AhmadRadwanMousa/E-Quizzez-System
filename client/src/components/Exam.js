@@ -466,6 +466,9 @@ const Exam = () => {
         subtitle="Complete Your Assessment"
         showUserMenu={true}
         showLanguageSwitcher={true}
+        showBackButton={true}
+        backTo="/dashboard"
+        backLabel="Back to Dashboard"
       />
 
       {/* Time Warning */}

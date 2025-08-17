@@ -92,10 +92,20 @@ const AdminDashboard = () => {
         subtitle={t('adminDashboard.subtitle')}
         showUserMenu={true}
         showLanguageSwitcher={true}
+        showBackButton={false}
       />
 
       {/* Main Content */}
       <div className="container-ukf py-8">
+        {/* Navigation Breadcrumbs */}
+        <div className="mb-6">
+          <nav className="flex items-center space-x-2 text-sm text-ukf-600">
+            <span className="text-ukf-400">Admin Panel</span>
+            <span>/</span>
+            <span className="text-ukf-700 font-medium">Dashboard</span>
+          </nav>
+        </div>
+        
         {/* Page Title Section */}
         <div className="mb-8 text-center">
           <h2 className="text-3xl font-bold text-ukf-900 mb-2">{t('adminDashboard.administrativeControlCenter')}</h2>

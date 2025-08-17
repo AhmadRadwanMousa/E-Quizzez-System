@@ -271,6 +271,20 @@ const StudentsManagement = () => {
 
       {/* Main Content */}
       <div className="container-ukf py-8">
+        {/* Navigation Breadcrumbs */}
+        <div className="mb-6">
+          <nav className="flex items-center space-x-2 text-sm text-ukf-600">
+            <button 
+              onClick={() => navigate('/admin/dashboard')}
+              className="text-ukf-400 hover:text-ukf-600 transition-colors"
+            >
+              Admin Panel
+            </button>
+            <span>/</span>
+            <span className="text-ukf-700 font-medium">Students Management</span>
+          </nav>
+        </div>
+        
         {/* Page Title Section */}
         <div className="mb-8 text-center">
           <h2 className="text-3xl font-bold text-ukf-900 mb-2">{t('students.pageTitle')}</h2>

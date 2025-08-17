@@ -103,6 +103,15 @@ const Dashboard = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Navigation Breadcrumbs */}
+        <div className="mb-6">
+          <nav className="flex items-center space-x-2 text-sm text-ukf-600">
+            <span className="text-ukf-400">Student Portal</span>
+            <span>/</span>
+            <span className="text-ukf-700 font-medium">Dashboard</span>
+          </nav>
+        </div>
+        
         {/* Student Profile Card */}
         <div className="mb-8">
           <div className="ukf-card p-8 transform -mt-16 relative z-10">

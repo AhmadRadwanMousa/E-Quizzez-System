@@ -125,6 +125,9 @@ const Results = () => {
         subtitle="Your Academic Performance Overview"
         showUserMenu={true}
         showLanguageSwitcher={true}
+        showBackButton={true}
+        backTo="/dashboard"
+        backLabel="Back to Dashboard"
       />
 
       <div className="container-ukf py-8">
